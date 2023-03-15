@@ -1,0 +1,88 @@
+import discord
+from discord.ext import commands
+import youtube_dl
+import asyncio
+from spotipy import Spotify
+from spotipy.oauth2 import SpotifyClientCredentials
+
+TOKEN = "MTA4NTMyOTY3NzY3OTMyOTM5Mg.GGFBoR.5CkQomX6UuuhCQq12O2CiuZMI9GgUEsNbyAbZE"
+SPOTIPY_CLIENT_ID = "685d2c6293424e428173e61233e0a72b"
+SPOTIPY_CLIENT_SECRET = "3855f48577174d8284fccd7a9d83054e"
+
+intents = discord.Intents.default()
+intents.typing = False
+intents.presences = False
+
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Connectez-vous à l'API Spotify
+sp = Spotify(auth_manager=SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET))
+
+ytdl_opts = {
+    "format": "bestaudio/best",
+    "postprocessors": [{
+        "key": "FFmpegExtractAudio",
+        "preferredcodec": "mp3",
+        "preferredquality": "192",
+    }],
+    "quiet": True,
+    "no_warnings": True,
+}
+
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source, *, data, volume=0.5):
+        super().__init__(source, volume)
+        self.data = data
+        self.title = data.get("title")
+        self.url = data.get("url")
+
+    @classmethod
+    async def from_url(cls, url, *, loop=None, stream=False):
+        loop = loop or asyncio.get_event_loop()
+        data = await loop.run_in_executor(None, lambda: youtube_dl.YoutubeDL(ytdl_opts).extract_info(url, download=not stream))
+
+        if "entries" in data:
+            data = data["entries"][0]
+
+        filename = data["url"] if stream else youtube_dl.YoutubeDL(ytdl_opts).prepare_filename(data)
+        return cls(discord.FFmpegPCMAudio(filename, **{"options": "-vn"}), data=data)
+
+@bot.event
+async def on_ready():
+    print(f'{bot.user} est connecté à Discord!')
+
+@bot.command(name="join", help="Le bot rejoint votre salon vocal")
+async def join(ctx):
+    channel = ctx.author.voice.channel
+    await channel.connect()
+
+@bot.command(name="leave", help="Le bot quitte votre salon vocal")
+async def leave(ctx):
+    await ctx.voice_client.disconnect()
+
+@bot.command(name="play", help="Joue une musique à partir de YouTube ou Spotify")
+async def play(ctx, url: str):
+    async with ctx.typing():
+        if "open.spotify.com" in url:
+            track = sp.track(url)
+            query = f"{track['name']} {track['artists'][0]['name']}"
+            url = search_youtube(query)
+        player = await YTDLSource.from_url(url, loop=bot.loop)
+        ctx.voice_client.play(player, after=lambda e: print(f"Player error: {e}") if e else None)
+    await ctx.send(f"🎶 En train de jouer: {player.title}")
+
+@bot.command(name="pause", help="Met en pause la musique en cours")
+async def pause(ctx):
+    ctx.voice_client.pause()
+    await ctx.send("⏸️ Musique en pause")
+
+@bot.command(name="resume", help="Reprend la musique en pause")
+async def resume(ctx):
+    ctx.voice_client.resume()
+    await ctx.send("▶️ Musique reprise")
+
+@bot.command(name="stop", help="Arrête la musique en cours et efface la file d'attente")
+async def stop(ctx):
+    ctx.voice_client.stop()
+    await ctx.send("⏹️ Musique arrêt
