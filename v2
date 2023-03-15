@@ -5,7 +5,7 @@ import asyncio
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials
 
-TOKEN = "MTA4NTMyOTY3NzY3OTMyOTM5Mg.GGFBoR.5CkQomX6UuuhCQq12O2CiuZMI9GgUEsNbyAbZE"
+TOKEN = "MTA4NTMyOTY3NzY3OTMyOTM5Mg.G02yBf.II0ZR4BnUI3-jpk3Z-oT8j_hb8hTuxfg0Kh"
 SPOTIPY_CLIENT_ID = "685d2c6293424e428173e61233e0a72b"
 SPOTIPY_CLIENT_SECRET = "3855f48577174d8284fccd7a9d83054e"
 
@@ -85,4 +85,6 @@ async def resume(ctx):
 @bot.command(name="stop", help="Arrête la musique en cours et efface la file d'attente")
 async def stop(ctx):
     ctx.voice_client.stop()
-    await ctx.send("⏹️ Musique arrêt
+    await ctx.send("⏹️ Musique arrêt")
+    
+bot.run(TOKEN)
