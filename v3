@@ -5,7 +5,7 @@ import asyncio
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials
 
-TOKEN = "MTA4NTMyOTY3NzY3OTMyOTM5Mg.G02yBf.II0ZR4BnUI3-jpk3Z-oT8j_hb8hTuxfg0Kh"
+TOKEN = "NTA0MDc0Njk1NDAyOTc5MzI4.G7pduv.xEBxZgOP8LXBLgEEE2MviQ8np2gzeifARg2"
 SPOTIPY_CLIENT_ID = "685d2c6293424e428173e61233e0a72b"
 SPOTIPY_CLIENT_SECRET = "3855f48577174d8284fccd7a9d83054e"
 
