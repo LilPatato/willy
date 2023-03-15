@@ -1,9 +1,11 @@
+import asyncio
 import discord
 from discord.ext import commands
 import youtube_dl
-import asyncio
 from spotipy import Spotify
 from spotipy.oauth2 import SpotifyClientCredentials
+from discord_slash import SlashCommand
+from discord_slash.utils.manage_commands import create_option
 
 TOKEN = "NTA0MDc0Njk1NDAyOTc5MzI4.G7pduv.xEBxZgOP8LXBLgEEE2MviQ8np2gzeifARg2"
 SPOTIPY_CLIENT_ID = "685d2c6293424e428173e61233e0a72b"
@@ -13,8 +15,8 @@ intents = discord.Intents.default()
 intents.typing = False
 intents.presences = False
 
-
 bot = commands.Bot(command_prefix="!", intents=intents)
+slash = SlashCommand(bot, sync_commands=True)
 
 # Connectez-vous à l'API Spotify
 sp = Spotify(auth_manager=SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET))
@@ -52,17 +54,28 @@ class YTDLSource(discord.PCMVolumeTransformer):
 async def on_ready():
     print(f'{bot.user} est connecté à Discord!')
 
-@bot.command(name="join", help="Le bot rejoint votre salon vocal")
-async def join(ctx):
+@slash.slash(name="join", description="Le bot rejoint votre salon vocal")
+async def _join(ctx):
     channel = ctx.author.voice.channel
     await channel.connect()
 
-@bot.command(name="leave", help="Le bot quitte votre salon vocal")
-async def leave(ctx):
+@slash.slash(name="leave", description="Le bot quitte votre salon vocal")
+async def _leave(ctx):
     await ctx.voice_client.disconnect()
 
-@bot.command(name="play", help="Joue une musique à partir de YouTube ou Spotify")
-async def play(ctx, url: str):
+@slash.slash(
+    name="play",
+    description="Joue une musique à partir de YouTube ou Spotify",
+    options=[
+        create_option(
+            name="url",
+            description="URL de la musique à jouer",
+            option_type=3,
+            required=True,
+        )
+    ],
+)
+async def _play(ctx, url: str):
     async with ctx.typing():
         if "open.spotify.com" in url:
             track = sp.track(url)
@@ -72,19 +85,20 @@ async def play(ctx, url: str):
         ctx.voice_client.play(player, after=lambda e: print(f"Player error: {e}") if e else None)
     await ctx.send(f"🎶 En train de jouer: {player.title}")
 
-@bot.command(name="pause", help="Met en pause la musique en cours")
-async def pause(ctx):
+@slash.slash(name="pause", description="Met en pause la musique en cours")
+async def _pause(ctx):
     ctx.voice_client.pause()
     await ctx.send("⏸️ Musique en pause")
 
-@bot.command(name="resume", help="Reprend la musique en pause")
-async def resume(ctx):
+@slash.slash(name="resume", description="Reprend la musique en pause")
+async def _resume(ctx):
     ctx.voice_client.resume()
     await ctx.send("▶️ Musique reprise")
 
-@bot.command(name="stop", help="Arrête la musique en cours et efface la file d'attente")
-async def stop(ctx):
+@slash.slash(name="stop", description="Arrête la musique en cours et efface la file d'attente")
+async def _stop(ctx):
     ctx.voice_client.stop()
-    await ctx.send("⏹️ Musique arrêt")
-    
+    await ctx.send("⏹️ Musique arrêtée")
+
 bot.run(TOKEN)
+
